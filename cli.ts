@@ -31,17 +31,17 @@ interface ReloadMessage {
 type BrowserMessage = LogMessage | ResponseMessage;
 
 // Connect to the Vite plugin's WebSocket server
-function connectToWebSocketServer(port = 3333): Promise<WebSocket> {
+function connectToWebSocketServer(port = 3333, verbose = false): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://localhost:${port}`);
 
     ws.on('open', () => {
-      console.log(`Connected to WebSocket server on port ${port}`);
+      if (verbose) console.log(`Connected to WebSocket server on port ${port}`);
       resolve(ws);
     });
 
     ws.on('error', (error: Error) => {
-      console.error(`Failed to connect to WebSocket server on port ${port}:`, error.message);
+      if (verbose) console.error(`Failed to connect to WebSocket server on port ${port}:`, error.message);
       reject(error);
     });
 
@@ -49,12 +49,15 @@ function connectToWebSocketServer(port = 3333): Promise<WebSocket> {
       try {
         const data = JSON.parse(message.toString()) as BrowserMessage;
         if (data.type === 'log') {
-          console.log(`[Browser Log] ${data.level}: ${data.message}`);
+          if (verbose) console.log(`[Browser Log] ${data.level}: ${data.message}`);
         } else if (data.type === 'response') {
-          console.log(`[Command Response] ${data.commandId}: ${data.result || data.error}`);
+          if (verbose) console.log(`[Command Response] ${data.commandId}: ${data.result || data.error}`);
+          // Always output the result to stdout for piping
+          if (data.result) process.stdout.write(data.result);
+          if (data.error) process.stderr.write(data.error);
         }
       } catch (error) {
-        console.error('Error processing message from browser:', error);
+        if (verbose) console.error('Error processing message from browser:', error);
       }
     });
 
@@ -68,9 +71,9 @@ function connectToWebSocketServer(port = 3333): Promise<WebSocket> {
 }
 
 // Send command to the browser
-async function sendCommandToBrowser(command: string, commandId: string, port = 3333): Promise<boolean> {
+async function sendCommandToBrowser(command: string, commandId: string, port = 3333, verbose = false): Promise<boolean> {
   try {
-    const ws = await connectToWebSocketServer(port);
+    const ws = await connectToWebSocketServer(port, verbose);
 
     const message: CommandMessage = {
       type: 'command',
@@ -79,7 +82,7 @@ async function sendCommandToBrowser(command: string, commandId: string, port = 3
     };
 
     ws.send(JSON.stringify(message));
-    console.log(`Command sent with ID: ${commandId}`);
+    if (verbose) console.log(`Command sent with ID: ${commandId}`);
 
     // Keep the connection open for a while to receive the response
     return new Promise((resolve) => {
@@ -89,28 +92,28 @@ async function sendCommandToBrowser(command: string, commandId: string, port = 3
       }, 2000);
     });
   } catch (error: any) {
-    console.error('Failed to send command:', error.message);
+    if (verbose) console.error('Failed to send command:', error.message);
     return false;
   }
 }
 
 // Send reload command to the browser
-async function sendReloadCommand(port = 3333): Promise<boolean> {
+async function sendReloadCommand(port = 3333, verbose = false): Promise<boolean> {
   try {
-    const ws = await connectToWebSocketServer(port);
+    const ws = await connectToWebSocketServer(port, verbose);
 
     const message: ReloadMessage = {
       type: 'reload'
     };
 
     ws.send(JSON.stringify(message));
-    console.log('Reload command sent');
+    if (verbose) console.log('Reload command sent');
 
     // Close the connection after sending the command
     ws.close();
     return true;
   } catch (error: any) {
-    console.error('Failed to send reload command:', error.message);
+    if (verbose) console.error('Failed to send reload command:', error.message);
     return false;
   }
 }
@@ -126,13 +129,15 @@ program
   .command('exec <command>')
   .description('Execute a JavaScript command in the browser')
   .option('-p, --port <port>', 'WebSocket server port', '3333')
-  .action(async (command: string, options: { port: string }) => {
+  .option('-v, --verbose', 'Verbose console output')
+  .action(async (command: string, options: { port: string, verbose?: boolean }) => {
     const port = parseInt(options.port, 10);
+    const verbose = options.verbose || false;
     const commandId = uuidv4();
-    const sent = await sendCommandToBrowser(command, commandId, port);
+    const sent = await sendCommandToBrowser(command, commandId, port, verbose);
 
     if (!sent) {
-      console.error('Failed to send command to browser');
+      if (verbose) console.error('Failed to send command to browser');
       process.exit(1);
     }
   });
@@ -142,13 +147,15 @@ program
   .command('run <command>')
   .description('Execute JavaScript with formatted output (ideal for AI tools)')
   .option('-p, --port <port>', 'WebSocket server port', '3333')
-  .action(async (command: string, options: { port: string }) => {
+  .option('-v, --verbose', 'Verbose console output')
+  .action(async (command: string, options: { port: string, verbose?: boolean }) => {
     const port = parseInt(options.port, 10);
+    const verbose = options.verbose || false;
     const commandId = uuidv4();
-    const sent = await sendCommandToBrowser(command, commandId, port);
+    const sent = await sendCommandToBrowser(command, commandId, port, verbose);
 
     if (!sent) {
-      console.error('Failed to send command to browser');
+      if (verbose) console.error('Failed to send command to browser');
       process.exit(1);
     }
   });
@@ -158,12 +165,14 @@ program
   .command('reload')
   .description('Reload the browser')
   .option('-p, --port <port>', 'WebSocket server port', '3333')
-  .action(async (options: { port: string }) => {
+  .option('-v, --verbose', 'Verbose console output')
+  .action(async (options: { port: string, verbose?: boolean }) => {
     const port = parseInt(options.port, 10);
-    const sent = await sendReloadCommand(port);
+    const verbose = options.verbose || false;
+    const sent = await sendReloadCommand(port, verbose);
 
     if (!sent) {
-      console.error('Failed to send reload command to browser');
+      if (verbose) console.error('Failed to send reload command to browser');
       process.exit(1);
     }
   });

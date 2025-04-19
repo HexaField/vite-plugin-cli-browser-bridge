@@ -27,6 +27,7 @@ export default defineConfig({
   plugins: [
     vitePluginCliBrowserBridge({
       port: 3333, // Optional: WebSocket server port (default: 3333)
+      verbose: true, // Optional: Verbose console logs (default: false)
     }),
   ],
 });
@@ -49,6 +50,9 @@ npx cli-browser-bridge run "window.location.href"
 
 # Reload the browser
 npx cli-browser-bridge reload
+
+# Use verbose mode to for verbose console output (useful for debugging)
+npx cli-browser-bridge exec --verbose "window.document.title"
 ```
 
 ### Programmatic Usage
@@ -80,6 +84,13 @@ exec(
 | `exec <command>` | Execute JavaScript in the browser and return the result       |
 | `run <command>`  | Execute JavaScript with formatted output (ideal for AI tools) |
 | `reload`         | Force the browser to reload                                   |
+
+### CLI Options
+
+| Option          | Description                             |
+| --------------- | --------------------------------------- |
+| `-p, --port`    | WebSocket server port (default: 3333)   |
+| `-v, --verbose` | Verbose console output (default: false) |
 
 ### Browser Functions
 
