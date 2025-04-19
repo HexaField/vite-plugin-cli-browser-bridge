@@ -7,7 +7,7 @@
 // Use dynamic import for ESM compatibility
 async function runTest() {
   try {
-    const plugin = await import('../dist/cjs/vite-plugin-cli-browser-bridge.cjs');
+    const plugin = (await import('../dist/cjs/vite-plugin-cli-browser-bridge.cjs')).default
 
     // Check if the plugin is a function
     if (typeof plugin.default !== 'function') {
