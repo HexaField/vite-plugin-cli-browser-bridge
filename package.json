@@ -4,7 +4,15 @@
   "version": "0.1.0",
   "type": "module",
   "description": "A Vite plugin that allows an AI coding assistant to run commands on browser pages",
-  "keywords": ["vite", "plugin", "ai", "llm", "browser", "command", "websocket"],
+  "keywords": [
+    "vite",
+    "plugin",
+    "ai",
+    "llm",
+    "browser",
+    "command",
+    "websocket"
+  ],
   "homepage": "https://github.com/HexaField/vite-plugin-cli-browser-bridge",
   "bugs": {
     "url": "https://github.com/HexaField/vite-plugin-cli-browser-bridge/issues"
@@ -22,7 +30,7 @@
     "build:plugin:esm": "tsc -p tsconfig.json --outDir dist/esm --module NodeNext --moduleResolution NodeNext",
     "build:plugin:cjs": "tsc -p tsconfig.json --outDir dist/cjs --module CommonJS --moduleResolution Node && mv dist/cjs/vite-plugin-cli-browser-bridge.js dist/cjs/vite-plugin-cli-browser-bridge.cjs",
     "build:plugin": "npm run build:plugin:esm && npm run build:plugin:cjs",
-    "build:all": "npm run build:plugin && npm run build:cli",
+    "build:all": "rm -rf ./dist && npm run build:plugin && npm run build:cli",
     "test:build": "node tests/test-build-mode.js",
     "test:cjs": "node tests/test-cjs-import.cjs",
     "test:esm": "node --experimental-vm-modules tests/test-esm-import.js",
@@ -61,7 +69,6 @@
   },
   "dependencies": {
     "commander": "^13.1.0",
-    "express": "^5.1.0",
     "uuid": "^9.0.1",
     "ws": "^8.18.1"
   }
