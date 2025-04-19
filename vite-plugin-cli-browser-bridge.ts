@@ -2,7 +2,6 @@ import WebSocket from 'ws';
 import { WebSocketServer } from 'ws';
 import { Plugin, IndexHtmlTransformContext } from 'vite';
 
-// Define types for messages
 interface LogMessage {
   type: 'log';
   level: string;
@@ -24,21 +23,17 @@ interface CommandMessage {
 
 type BrowserMessage = LogMessage | ResponseMessage;
 
-// Define plugin options
 interface PluginOptions {
   port?: number;
   verbose?: boolean; // If true, log debug browser messages to the Vite dev server console and CLI
 }
 
-// WebSocket server for communication with the browser
 let wss: WebSocketServer | null = null;
 const browserClients: Set<WebSocket> = new Set();
 
-// Store for console logs and command responses
 const logStore: BrowserMessage[] = [];
 const MAX_LOGS = 1000; // Limit the number of logs to prevent memory issues
 
-// Initialize WebSocket server
 function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | null {
   try {
     wss = new WebSocketServer({ port });
@@ -51,21 +46,17 @@ function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | nu
         try {
           const data = JSON.parse(message.toString());
 
-          // Handle different message types
           if (data.type === 'log' || data.type === 'response') {
-            // Store logs and responses
             logStore.push(data as BrowserMessage);
             if (logStore.length > MAX_LOGS) {
-              logStore.shift(); // Remove oldest log if we exceed the limit
+              logStore.shift(); // Prevent memory issues
             }
 
-            // Print to console
             if (data.type === 'log') {
               if (verbose) console.log(`[Browser Log] ${data.level}: ${data.message}`);
             } else if (data.type === 'response') {
               if (verbose) console.log(`[Command Response] ${data.commandId}: ${data.result || data.error}`);
 
-              // Forward response to all other clients (CLI)
               browserClients.forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
                   client.send(message.toString());
@@ -73,7 +64,6 @@ function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | nu
               });
             }
           } else if (data.type === 'command' || data.type === 'reload') {
-            // Forward command/reload messages to all browser clients
             if (verbose) console.log(`Forwarding ${data.type} message to browser clients`);
             browserClients.forEach((client) => {
               if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -97,7 +87,7 @@ function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | nu
   } catch (error: any) {
     if (error.code === 'EADDRINUSE') {
       if (verbose) console.warn(`Port ${port} is already in use. Using a different port...`);
-      return initWebSocketServer(port + 1, verbose); // Try the next port
+      return initWebSocketServer(port + 1, verbose); // Recursively try next port
     } else {
       if (verbose) console.error('Failed to start WebSocket server:', error);
       return null;
@@ -105,15 +95,12 @@ function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | nu
   }
 }
 
-// Global verbose option
 let verboseOutput = true;
 
-// Set verbose mode
 export function setVerbose(verbose: boolean): void {
   verboseOutput = verbose;
 }
 
-// Send command to all connected browser clients
 export function sendCommand(command: string, commandId: string): boolean {
   if (!wss) {
     if (verboseOutput) console.error('WebSocket server not initialized');
@@ -137,48 +124,40 @@ export function sendCommand(command: string, commandId: string): boolean {
   return sent;
 }
 
-// Get stored logs
 export function getLogs(): BrowserMessage[] {
   return [...logStore];
 }
 
-// Clear stored logs
 export function clearLogs(): boolean {
   logStore.length = 0;
   return true;
 }
 
-// Vite plugin
 export default function vitePluginCliBrowserBridge(options: PluginOptions = {}): Plugin {
   const port = options.port || 3333;
   const verbose = options.verbose || false;
   let server: WebSocketServer | null = null;
 
-  // Set global verbose option
   setVerbose(verbose);
 
   return {
     name: 'vite-plugin-cli-browser-bridge',
-    apply: 'serve', // Only apply this plugin during development/serve
+    apply: 'serve', // No-op in build mode
 
     configureServer() {
       server = initWebSocketServer(port, verbose);
     },
 
     transformIndexHtml(html: string, ctx: IndexHtmlTransformContext): string {
-      // Only inject in development mode
       if (ctx.server === undefined) {
-        return html; // Skip during build
+        return html;
       }
 
-      // Inject WebSocket client code into the HTML
       const wsClientScript = `
         <script>
           (function() {
-            // Connect to WebSocket server
             const ws = new WebSocket('ws://localhost:${port}');
 
-            // Store original console methods
             const originalConsole = {
               log: console.log,
               warn: console.warn,
@@ -186,7 +165,6 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
               info: console.info
             };
 
-            // Override console methods to capture logs
             console.log = function() {
               originalConsole.log.apply(console, arguments);
               sendLog('log', Array.from(arguments).join(' '));
@@ -207,7 +185,6 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
               sendLog('info', Array.from(arguments).join(' '));
             };
 
-            // Send log to server
             function sendLog(level, message) {
               if (ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
@@ -218,7 +195,6 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
               }
             }
 
-            // Handle WebSocket events
             ws.onopen = function() {
               console.log('Connected to CLI browser bridge server');
             };
@@ -236,18 +212,15 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
                 const data = JSON.parse(event.data);
 
                 if (data.type === 'command') {
-                  // Execute the command
                   try {
                     const result = eval(data.command);
 
-                    // Send the result back
                     ws.send(JSON.stringify({
                       type: 'response',
                       commandId: data.commandId,
                       result: typeof result === 'object' ? JSON.stringify(result) : String(result)
                     }));
                   } catch (error) {
-                    // Send the error back
                     ws.send(JSON.stringify({
                       type: 'response',
                       commandId: data.commandId,
@@ -255,7 +228,6 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
                     }));
                   }
                 } else if (data.type === 'reload') {
-                  // Reload the page
                   window.location.reload();
                 }
               } catch (error) {
@@ -263,7 +235,6 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
               }
             };
 
-            // Expose a global function to execute commands
             window.executeCommand = function(command) {
               try {
                 return eval(command);

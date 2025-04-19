@@ -1,15 +1,11 @@
-// This is a simple wrapper to re-export the plugin
-// It helps avoid TypeScript errors due to different Vite versions
+// Wrapper to avoid TypeScript errors due to different Vite versions
 import { PluginOption } from 'vite';
 
-// We need to use dynamic import to avoid TypeScript errors
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let pluginModule: any = null;
 
-// Try to load the plugin synchronously
 try {
-  // Using require would be simpler, but we need to stick with ESM
-  // This is a workaround to load the module synchronously in ESM
+  // Workaround to load the module synchronously in ESM
   pluginModule = await import('../dist/esm/vite-plugin-cli-browser-bridge.js');
 } catch (error) {
   console.error('Failed to load plugin:', error);
@@ -27,6 +23,5 @@ export default function vitePluginCliBrowserBridge(options?: PluginOptions): Plu
     };
   }
 
-  // Call the actual plugin function with the provided options
   return pluginModule.default(options);
 }

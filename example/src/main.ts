@@ -3,7 +3,6 @@ import javascriptLogo from './javascript.svg'
 import viteLogo from '/vite.svg'
 import { setupCounter } from './counter.ts'
 
-// Declare global window interface extension
 declare global {
   interface Window {
     getPageTitle: () => string;
@@ -38,14 +37,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
 setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
 
-// Add test command functionality
 document.querySelector<HTMLButtonElement>('#test-command')!.addEventListener('click', () => {
   console.log('Test command button clicked')
   const output = document.querySelector<HTMLDivElement>('#command-output')!
   output.textContent = 'Button clicked at: ' + new Date().toISOString()
 })
 
-// Define some global functions that can be called via the CLI
 window.getPageTitle = function(): string {
   return document.title
 }
