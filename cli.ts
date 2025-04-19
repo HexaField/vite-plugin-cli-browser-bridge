@@ -3,6 +3,7 @@
 import { program } from 'commander';
 import { v4 as uuidv4 } from 'uuid';
 import WebSocket from 'ws';
+import { EventEmitter } from 'events';
 
 // Define types for messages
 interface LogMessage {
@@ -30,10 +31,16 @@ interface ReloadMessage {
 
 type BrowserMessage = LogMessage | ResponseMessage;
 
+// Create a custom WebSocket with event emitter
+interface CustomWebSocket extends WebSocket {
+  eventEmitter: EventEmitter;
+}
+
 // Connect to the Vite plugin's WebSocket server
-function connectToWebSocketServer(port = 3333, verbose = false): Promise<WebSocket> {
+function connectToWebSocketServer(port = 3333, verbose = false): Promise<CustomWebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(`ws://localhost:${port}`);
+    const ws = new WebSocket(`ws://localhost:${port}`) as CustomWebSocket;
+    ws.eventEmitter = new EventEmitter();
 
     ws.on('open', () => {
       if (verbose) console.log(`Connected to WebSocket server on port ${port}`);
@@ -55,6 +62,9 @@ function connectToWebSocketServer(port = 3333, verbose = false): Promise<WebSock
           // Always output the result to stdout for piping
           if (data.result) process.stdout.write(data.result);
           if (data.error) process.stderr.write(data.error);
+
+          // Emit a response event that can be listened to
+          ws.eventEmitter.emit('command-response', data.commandId);
         }
       } catch (error) {
         if (verbose) console.error('Error processing message from browser:', error);
@@ -81,16 +91,31 @@ async function sendCommandToBrowser(command: string, commandId: string, port = 3
       commandId
     };
 
-    ws.send(JSON.stringify(message));
-    if (verbose) console.log(`Command sent with ID: ${commandId}`);
+    // Create a promise that resolves when we get a response for this specific command
+    const responsePromise = new Promise<boolean>((resolve) => {
+      // Listen for the response event with this command ID
+      ws.eventEmitter.on('command-response', (responseCommandId: string) => {
+        console.log(`Received response for command ID: ${responseCommandId} from command ID: ${commandId}`);
+        if (responseCommandId === commandId) {
+          console.log('Closing WebSocket connection...');
+          ws.close();
+          resolve(true);
+        }
+      });
 
-    // Keep the connection open for a while to receive the response
-    return new Promise((resolve) => {
+      // Add a timeout of 5 seconds as a fallback
       setTimeout(() => {
         ws.close();
         resolve(true);
-      }, 2000);
+      }, 5000);
     });
+
+    // Send the command
+    ws.send(JSON.stringify(message));
+    if (verbose) console.log(`Command sent with ID: ${commandId}`);
+
+    // Wait for the response or timeout
+    return responsePromise;
   } catch (error: any) {
     if (verbose) console.error('Failed to send command:', error.message);
     return false;
@@ -109,9 +134,14 @@ async function sendReloadCommand(port = 3333, verbose = false): Promise<boolean>
     ws.send(JSON.stringify(message));
     if (verbose) console.log('Reload command sent');
 
-    // Close the connection after sending the command
-    ws.close();
-    return true;
+    // For reload, we don't expect a response, so just close after a short delay
+    // to allow the message to be sent
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        ws.close();
+        resolve(true);
+      }, 500); // Short delay for reload command
+    });
   } catch (error: any) {
     if (verbose) console.error('Failed to send reload command:', error.message);
     return false;
@@ -153,6 +183,7 @@ program
     const verbose = options.verbose || false;
     const commandId = uuidv4();
     const sent = await sendCommandToBrowser(command, commandId, port, verbose);
+    console.log(sent)
 
     if (!sent) {
       if (verbose) console.error('Failed to send command to browser');
