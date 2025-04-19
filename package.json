@@ -1,5 +1,5 @@
 {
-  "name": "@hexafield/vite-plugin-cli-browser-bridge",
+  "name": "vite-plugin-cli-browser-bridge",
   "private": false,
   "version": "0.1.0",
   "type": "module",

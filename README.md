@@ -12,7 +12,7 @@ A Vite plugin that creates a bridge between CLI tools and the browser, enabling 
 ## Installation
 
 ```bash
-npm install @hexafield/vite-plugin-cli-browser-bridge --save-dev
+npm install vite-plugin-cli-browser-bridge --save-dev
 ```
 
 ## Setup
@@ -21,7 +21,7 @@ Add the plugin to your `vite.config.js` or `vite.config.ts`:
 
 ```js
 import { defineConfig } from "vite";
-import vitePluginCliBrowserBridge from "@hexafield/vite-plugin-cli-browser-bridge";
+import vitePluginCliBrowserBridge from "vite-plugin-cli-browser-bridge";
 
 export default defineConfig({
   plugins: [

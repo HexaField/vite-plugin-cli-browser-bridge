@@ -1,4 +1,4 @@
-# Contributing to @hexafield/vite-plugin-cli-browser-bridge
+# Contributing to vite-plugin-cli-browser-bridge
 
 Thank you for considering contributing to this project! This document provides guidelines and instructions for development, testing, and contributing to the repository.
 
