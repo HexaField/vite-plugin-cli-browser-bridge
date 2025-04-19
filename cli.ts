@@ -95,9 +95,7 @@ async function sendCommandToBrowser(command: string, commandId: string, port = 3
     const responsePromise = new Promise<boolean>((resolve) => {
       // Listen for the response event with this command ID
       ws.eventEmitter.on('command-response', (responseCommandId: string) => {
-        console.log(`Received response for command ID: ${responseCommandId} from command ID: ${commandId}`);
         if (responseCommandId === commandId) {
-          console.log('Closing WebSocket connection...');
           ws.close();
           resolve(true);
         }
@@ -183,7 +181,6 @@ program
     const verbose = options.verbose || false;
     const commandId = uuidv4();
     const sent = await sendCommandToBrowser(command, commandId, port, verbose);
-    console.log(sent)
 
     if (!sent) {
       if (verbose) console.error('Failed to send command to browser');
