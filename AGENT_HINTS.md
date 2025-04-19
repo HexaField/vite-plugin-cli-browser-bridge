@@ -1,0 +1,7 @@
+- Execute JavaScript in browser: `npx cli-browser-bridge exec "window.document.title"`
+- Execute with formatted output: `npx cli-browser-bridge run "window.location.href"`
+- Reload browser: `npx cli-browser-bridge reload`
+- Commands execute in browser context and return results to CLI
+- Use standard DOM methods: `document.querySelector()`, `document.querySelectorAll()`
+- Any valid JavaScript can be executed that returns a value
+- Objects are automatically JSON-stringified in the response

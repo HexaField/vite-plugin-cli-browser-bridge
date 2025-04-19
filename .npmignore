@@ -1,0 +1,36 @@
+# Source files
+src/
+*.ts
+!dist/**/*.d.ts
+
+# Configuration files
+tsconfig.json
+tsconfig.cli.json
+vite.config.ts
+
+# Development files
+node_modules/
+.vscode/
+.idea/
+.git/
+.gitignore
+
+# Build artifacts
+*.tsbuildinfo
+
+# Test files
+test/
+*.test.ts
+*.spec.ts
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.*
+
+# Editor directories and files
+.DS_Store
