@@ -6,7 +6,7 @@ A Vite plugin that creates a bridge between CLI tools and the browser, enabling 
 
 - Execute JavaScript commands in the browser from the command line
 - Capture and return browser console logs and command results
-- Reload the browser programmatically
+- Control browser tabs (open, close, reload) programmatically
 - Seamless integration with AI assistants and automation tools
 
 ## Installation
@@ -48,6 +48,12 @@ npx cli-browser-bridge exec "window.document.title"
 # Reload the browser
 npx cli-browser-bridge reload
 
+# Open a new browser tab
+npx cli-browser-bridge open
+
+# Close all browser tabs
+npx cli-browser-bridge close
+
 # Use verbose mode for verbose console output (useful for debugging)
 npx cli-browser-bridge exec --verbose "window.document.title"
 ```
@@ -80,6 +86,8 @@ exec(
 | ---------------- | --------------------------------------------------------------------- |
 | `exec <command>` | Execute JavaScript in the browser (output is automatically formatted) |
 | `reload`         | Force the browser to reload                                           |
+| `open`           | Open the Vite development server in the default browser              |
+| `close`          | Close all open browser tabs                                           |
 
 ### CLI Options
 

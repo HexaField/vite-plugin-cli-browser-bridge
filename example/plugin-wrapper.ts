@@ -18,9 +18,7 @@ interface PluginOptions {
 export default function vitePluginCliBrowserBridge(options?: PluginOptions): PluginOption {
   if (!pluginModule || !pluginModule.default) {
     console.error('Plugin module not loaded correctly');
-    return {
-      name: 'vite-plugin-cli-browser-bridge-wrapper-error'
-    };
+    throw new Error('Plugin module not loaded correctly');
   }
 
   return pluginModule.default(options);

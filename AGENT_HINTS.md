@@ -1,5 +1,7 @@
 - Execute JavaScript in browser: `npx cli-browser-bridge exec "window.document.title"`
 - Reload browser: `npx cli-browser-bridge reload`
+- Open the Vite development server in the default browser: `npx cli-browser-bridge open`
+- Close all browser tabs: `npx cli-browser-bridge close`
 - Commands execute in browser context and return results to CLI
 - Any valid JavaScript can be executed
 - Objects are automatically JSON-stringified in the response

@@ -1,24 +1,33 @@
-import WebSocket from 'ws';
-import { WebSocketServer } from 'ws';
-import { Plugin, IndexHtmlTransformContext } from 'vite';
+import WebSocket from "ws";
+import { WebSocketServer } from "ws";
+import { Plugin, IndexHtmlTransformContext } from "vite";
+import open from "open";
 
 interface LogMessage {
-  type: 'log';
+  type: "log";
   level: string;
   message: string;
 }
 
 interface ResponseMessage {
-  type: 'response';
+  type: "response";
   commandId: string;
   result?: string;
   error?: string;
 }
 
 interface CommandMessage {
-  type: 'command';
+  type: "command";
   command: string;
   commandId: string;
+}
+
+interface OpenMessage {
+  type: "open";
+}
+
+interface CloseMessage {
+  type: "close";
 }
 
 type BrowserMessage = LogMessage | ResponseMessage;
@@ -34,28 +43,37 @@ const browserClients: Set<WebSocket> = new Set();
 const logStore: BrowserMessage[] = [];
 const MAX_LOGS = 1000; // Limit the number of logs to prevent memory issues
 
-function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | null {
+function initWebSocketServer(
+  port = 3333,
+  verbose = false
+): WebSocketServer | null {
   try {
     wss = new WebSocketServer({ port });
 
-    wss.on('connection', (ws: WebSocket) => {
-      if (verbose) console.log('Browser client connected');
+    wss.on("connection", (ws: WebSocket) => {
+      if (verbose) console.log("Browser client connected");
       browserClients.add(ws);
 
-      ws.on('message', (message: WebSocket.Data) => {
+      ws.on("message", (message: WebSocket.Data) => {
         try {
           const data = JSON.parse(message.toString());
 
-          if (data.type === 'log' || data.type === 'response') {
+          if (data.type === "log" || data.type === "response") {
             logStore.push(data as BrowserMessage);
             if (logStore.length > MAX_LOGS) {
               logStore.shift(); // Prevent memory issues
             }
 
-            if (data.type === 'log') {
-              if (verbose) console.log(`[Browser Log] ${data.level}: ${data.message}`);
-            } else if (data.type === 'response') {
-              if (verbose) console.log(`[Command Response] ${data.commandId}: ${data.result || data.error}`);
+            if (data.type === "log") {
+              if (verbose)
+                console.log(`[Browser Log] ${data.level}: ${data.message}`);
+            } else if (data.type === "response") {
+              if (verbose)
+                console.log(
+                  `[Command Response] ${data.commandId}: ${
+                    data.result || data.error
+                  }`
+                );
 
               browserClients.forEach((client) => {
                 if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -63,8 +81,14 @@ function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | nu
                 }
               });
             }
-          } else if (data.type === 'command' || data.type === 'reload') {
-            if (verbose) console.log(`Forwarding ${data.type} message to browser clients`);
+          } else if (
+            data.type === "command" ||
+            data.type === "reload" ||
+            data.type === "open" ||
+            data.type === "close"
+          ) {
+            if (verbose)
+              console.log(`Forwarding ${data.type} message to browser clients`);
             browserClients.forEach((client) => {
               if (client !== ws && client.readyState === WebSocket.OPEN) {
                 client.send(message.toString());
@@ -72,12 +96,13 @@ function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | nu
             });
           }
         } catch (error) {
-          if (verbose) console.error('Error processing message from browser:', error);
+          if (verbose)
+            console.error("Error processing message from browser:", error);
         }
       });
 
-      ws.on('close', () => {
-        if (verbose) console.log('Browser client disconnected');
+      ws.on("close", () => {
+        if (verbose) console.log("Browser client disconnected");
         browserClients.delete(ws);
       });
     });
@@ -85,11 +110,14 @@ function initWebSocketServer(port = 3333, verbose = false): WebSocketServer | nu
     if (verbose) console.log(`WebSocket server started on port ${port}`);
     return wss;
   } catch (error: any) {
-    if (error.code === 'EADDRINUSE') {
-      if (verbose) console.warn(`Port ${port} is already in use. Using a different port...`);
+    if (error.code === "EADDRINUSE") {
+      if (verbose)
+        console.warn(
+          `Port ${port} is already in use. Using a different port...`
+        );
       return initWebSocketServer(port + 1, verbose); // Recursively try next port
     } else {
-      if (verbose) console.error('Failed to start WebSocket server:', error);
+      if (verbose) console.error("Failed to start WebSocket server:", error);
       return null;
     }
   }
@@ -103,14 +131,14 @@ export function setVerbose(verbose: boolean): void {
 
 export function sendCommand(command: string, commandId: string): boolean {
   if (!wss) {
-    if (verboseOutput) console.error('WebSocket server not initialized');
+    if (verboseOutput) console.error("WebSocket server not initialized");
     return false;
   }
 
   const message: CommandMessage = {
-    type: 'command',
+    type: "command",
     command,
-    commandId
+    commandId,
   };
 
   let sent = false;
@@ -133,7 +161,9 @@ export function clearLogs(): boolean {
   return true;
 }
 
-export default function vitePluginCliBrowserBridge(options: PluginOptions = {}): Plugin {
+export default function vitePluginCliBrowserBridge(
+  options: PluginOptions = {}
+): Plugin {
   const port = options.port || 3333;
   const verbose = options.verbose || false;
   let server: WebSocketServer | null = null;
@@ -141,11 +171,38 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
   setVerbose(verbose);
 
   return {
-    name: 'vite-plugin-cli-browser-bridge',
-    apply: 'serve', // No-op in build mode
+    name: "vite-plugin-cli-browser-bridge",
+    apply: "serve", // No-op in build mode
 
-    configureServer() {
+    configureServer(viteServer) {
       server = initWebSocketServer(port, verbose);
+
+      // Modify the WebSocket server to handle the 'open' command
+      if (server) {
+        server.on("connection", (ws) => {
+          ws.on("message", (message) => {
+            try {
+              const data = JSON.parse(message.toString());
+
+              if (data.type === "open") {
+                // Store the Vite server URL for later use
+                const address = viteServer.httpServer?.address();
+                if (address && typeof address !== "string") {
+                  const protocol = "http";
+                  const hostname =
+                    address.address === "::1" ? "localhost" : address.address;
+                  const port = address.port;
+                  const viteServerUrl = `${protocol}://${hostname}:${port}`;
+                  if (verbose) console.log(`Vite server URL: ${viteServerUrl}`);
+                  open(viteServerUrl);
+                }
+              }
+            } catch (error) {
+              // Error already handled in the main message handler
+            }
+          });
+        });
+      }
     },
 
     transformIndexHtml(html: string, ctx: IndexHtmlTransformContext): string {
@@ -229,6 +286,8 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
                   }
                 } else if (data.type === 'reload') {
                   window.location.reload();
+                } else if (data.type === 'close') {
+                  window.close();
                 }
               } catch (error) {
                 console.error('Error processing message:', error);
@@ -247,14 +306,14 @@ export default function vitePluginCliBrowserBridge(options: PluginOptions = {}):
         </script>
       `;
 
-      return html.replace('</head>', `${wsClientScript}</head>`);
+      return html.replace("</head>", `${wsClientScript}</head>`);
     },
 
     closeBundle() {
       if (server) {
         server.close();
-        if (verbose) console.log('WebSocket server closed');
+        if (verbose) console.log("WebSocket server closed");
       }
-    }
+    },
   };
 }

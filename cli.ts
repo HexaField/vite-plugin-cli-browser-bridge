@@ -29,6 +29,14 @@ interface ReloadMessage {
   type: 'reload';
 }
 
+interface OpenMessage {
+  type: 'open';
+}
+
+interface CloseMessage {
+  type: 'close';
+}
+
 type BrowserMessage = LogMessage | ResponseMessage;
 
 interface CustomWebSocket extends WebSocket {
@@ -220,6 +228,82 @@ async function sendReloadCommand(port = 3333, verbose = false): Promise<boolean>
   }
 }
 
+async function sendOpenCommand(port = 3333, verbose = false): Promise<boolean> {
+  let wsRef: CustomWebSocket | null = null;
+
+  try {
+    wsRef = await connectToWebSocketServer(port, verbose);
+    const ws = wsRef;
+
+    const message: OpenMessage = {
+      type: 'open'
+    };
+
+    ws.send(JSON.stringify(message));
+
+    // Short delay to ensure message is sent before closing
+    const result = await new Promise<boolean>((resolve) => {
+      setTimeout(() => {
+        ws.terminate();
+        wsRef = null;
+        resolve(true);
+      }, 500);
+    });
+
+    if (wsRef) {
+      wsRef.terminate();
+      wsRef = null;
+    }
+
+    return result;
+  } catch (error: any) {
+    console.error('Error:', error.message);
+
+    if (wsRef) {
+      wsRef.terminate();
+    }
+    return false;
+  }
+}
+
+async function sendCloseCommand(port = 3333, verbose = false): Promise<boolean> {
+  let wsRef: CustomWebSocket | null = null;
+
+  try {
+    wsRef = await connectToWebSocketServer(port, verbose);
+    const ws = wsRef;
+
+    const message: CloseMessage = {
+      type: 'close'
+    };
+
+    ws.send(JSON.stringify(message));
+
+    // Short delay to ensure message is sent before closing
+    const result = await new Promise<boolean>((resolve) => {
+      setTimeout(() => {
+        ws.terminate();
+        wsRef = null;
+        resolve(true);
+      }, 500);
+    });
+
+    if (wsRef) {
+      wsRef.terminate();
+      wsRef = null;
+    }
+
+    return result;
+  } catch (error: any) {
+    console.error('Error:', error.message);
+
+    if (wsRef) {
+      wsRef.terminate();
+    }
+    return false;
+  }
+}
+
 program
   .name('cli-browser-bridge')
   .description('CLI to send commands to the browser')
@@ -257,6 +341,40 @@ program
 
     if (!sent) {
       console.error('Failed to send reload command to browser');
+      safeExit(1);
+    }
+    safeExit(0);
+  });
+
+program
+  .command('open')
+  .description('Open a new browser tab using the Vite server URL')
+  .option('-p, --port <port>', 'WebSocket server port', '3333')
+  .option('-v, --verbose', 'Verbose console output')
+  .action(async (options: { port: string, verbose?: boolean }) => {
+    const port = parseInt(options.port, 10);
+    const verbose = options.verbose || false;
+    const sent = await sendOpenCommand(port, verbose);
+
+    if (!sent) {
+      console.error('Failed to send open command to browser');
+      safeExit(1);
+    }
+    safeExit(0);
+  });
+
+program
+  .command('close')
+  .description('Close all open browser tabs')
+  .option('-p, --port <port>', 'WebSocket server port', '3333')
+  .option('-v, --verbose', 'Verbose console output')
+  .action(async (options: { port: string, verbose?: boolean }) => {
+    const port = parseInt(options.port, 10);
+    const verbose = options.verbose || false;
+    const sent = await sendCloseCommand(port, verbose);
+
+    if (!sent) {
+      console.error('Failed to send close command to browser');
       safeExit(1);
     }
     safeExit(0);
