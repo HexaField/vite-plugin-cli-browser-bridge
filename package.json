@@ -1,7 +1,7 @@
 {
   "name": "vite-plugin-cli-browser-bridge",
   "private": false,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "A Vite plugin that allows an AI coding assistant to run commands on browser pages",
   "keywords": [
