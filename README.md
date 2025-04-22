@@ -45,13 +45,10 @@ Once your Vite server is running with the plugin enabled, you can use the CLI to
 # Execute JavaScript in the browser
 npx cli-browser-bridge exec "window.document.title"
 
-# Execute with formatted output (ideal for AI tools)
-npx cli-browser-bridge run "window.location.href"
-
 # Reload the browser
 npx cli-browser-bridge reload
 
-# Use verbose mode to for verbose console output (useful for debugging)
+# Use verbose mode for verbose console output (useful for debugging)
 npx cli-browser-bridge exec --verbose "window.document.title"
 ```
 
@@ -79,11 +76,10 @@ exec(
 
 ### CLI Commands
 
-| Command          | Description                                                   |
-| ---------------- | ------------------------------------------------------------- |
-| `exec <command>` | Execute JavaScript in the browser and return the result       |
-| `run <command>`  | Execute JavaScript with formatted output (ideal for AI tools) |
-| `reload`         | Force the browser to reload                                   |
+| Command          | Description                                                           |
+| ---------------- | --------------------------------------------------------------------- |
+| `exec <command>` | Execute JavaScript in the browser (output is automatically formatted) |
+| `reload`         | Force the browser to reload                                           |
 
 ### CLI Options
 
@@ -106,33 +102,10 @@ Perfect for AI assistants that need to interact with web applications:
 
 ```bash
 # AI can get information from the page
-npx cli-browser-bridge run "window.document.title"
+npx cli-browser-bridge exec "window.document.title"
 
 # AI can modify the page
-npx cli-browser-bridge run "document.querySelector('h1').textContent = 'Updated by AI'"
-```
-
-### Automated Testing
-
-Useful for testing frameworks that need to interact with the browser:
-
-```bash
-# Check if an element exists
-npx cli-browser-bridge exec "!!document.querySelector('.my-element')"
-
-# Get element count
-npx cli-browser-bridge exec "document.querySelectorAll('button').length"
-```
-
-### DevOps and CI/CD
-
-Integrate with your CI/CD pipeline for automated browser testing:
-
-```bash
-# Run in CI environment
-if npx cli-browser-bridge exec "document.readyState === 'complete'"; then
-  echo "Page loaded successfully"
-fi
+npx cli-browser-bridge exec "document.querySelector('h1').textContent = 'Updated by AI'"
 ```
 
 ## How It Works

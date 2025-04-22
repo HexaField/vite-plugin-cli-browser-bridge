@@ -227,7 +227,7 @@ program
 
 program
   .command('exec <command>')
-  .description('Execute a JavaScript command in the browser')
+  .description('Execute a JavaScript command in the browser (output is automatically formatted)')
   .option('-p, --port <port>', 'WebSocket server port', '3333')
   .option('-v, --verbose', 'Verbose console output')
   .action(async (command: string, options: { port: string, verbose?: boolean }) => {
@@ -243,23 +243,7 @@ program
     safeExit(0);
   });
 
-program
-  .command('run <command>')
-  .description('Execute JavaScript with formatted output (ideal for AI tools)')
-  .option('-p, --port <port>', 'WebSocket server port', '3333')
-  .option('-v, --verbose', 'Verbose console output')
-  .action(async (command: string, options: { port: string, verbose?: boolean }) => {
-    const port = parseInt(options.port, 10);
-    const verbose = options.verbose || false;
-    const commandId = uuidv4();
-    const sent = await sendCommandToBrowser(command, commandId, port, verbose);
 
-    if (!sent) {
-      console.error('Failed to send command to browser');
-      safeExit(1);
-    }
-    safeExit(0);
-  });
 
 program
   .command('reload')
